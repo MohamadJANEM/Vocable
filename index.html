@@ -349,7 +349,7 @@
     <div class="app-container">
         <div class="app-header">
             <h1>VocabBloom</h1>
-            <p>Automatische Lernkarten</p>
+            <p>Automatische Lernkarten mit Sprachausgabe</p>
         </div>
         
         <div class="app-content">
@@ -398,9 +398,14 @@
                 </button>
             </div>
             
-            <button id="knowBtn" class="button button-success" onclick="markAsKnown()">
-                <i class="fas fa-check button-icon"></i> Gewusst!
-            </button>
+            <div class="button-group">
+                <button id="knowBtn" class="button button-success" onclick="markAsKnown()">
+                    <i class="fas fa-check button-icon"></i> Gewusst!
+                </button>
+                <button id="speakBtn" class="button button-secondary" onclick="speakCurrentWord()">
+                    <i class="fas fa-volume-up button-icon"></i> Vorlesen
+                </button>
+            </div>
         </div>
     </div>
 
@@ -411,7 +416,58 @@
         let currentChapter = [];
         let currentIndex = 0;
         let showingTranslation = false;
+        let speechSynthesis = window.speechSynthesis;
+        let voices = [];
+        let selectedVoice = null;
         
+        // Initialisiere Sprachausgabe
+        function initSpeech() {
+            speechSynthesis.onvoiceschanged = function() {
+                voices = speechSynthesis.getVoices();
+                // Wähle eine englische Stimme aus (priorisiere weibliche Stimmen)
+                selectedVoice = voices.find(voice => 
+                    voice.lang.includes('en') && voice.name.includes('Female')
+                ) || voices.find(voice => voice.lang.includes('en'));
+            };
+            
+            // Lade die Stimmen sofort falls verfügbar
+            voices = speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                selectedVoice = voices.find(voice => 
+                    voice.lang.includes('en') && voice.name.includes('Female')
+                ) || voices.find(voice => voice.lang.includes('en'));
+            }
+        }
+        
+        // Wort vorlesen
+        function speakWord(text, lang = 'en-US') {
+            if (!speechSynthesis) {
+                console.error("SpeechSynthesis nicht unterstützt");
+                return;
+            }
+            
+            // Aktuelle Sprachausgabe stoppen
+            speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+            utterance.rate = 0.9; // Geschwindigkeit (0.1-10)
+            utterance.pitch = 1; // Tonhöhe (0-2)
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            
+            speechSynthesis.speak(utterance);
+        }
+        
+        // Aktuelles Wort vorlesen
+        function speakCurrentWord() {
+            if (currentChapter.length > 0 && currentIndex < currentChapter.length) {
+                const currentWord = currentChapter[currentIndex].english;
+                speakWord(currentWord);
+            }
+        }
         function loadCSVFile() {
             fetch('oxford.csv')
                 .then(response => {
