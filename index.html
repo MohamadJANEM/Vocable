@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VocabBloom | Automatische Lernkarten</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #FF6B6B;
+            --secondary: #FF9E76;
+            --tertiary: #FFD166;
+            --light: #FFF4E0;
+            --dark: #4A4A4A;
+            --success: #06D6A0;
+            --card-bg: #FFFFFF;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(45deg, #FFF4E0 0%, #FFE8D6 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--dark);
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 30px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .app-header {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .app-header h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);
+            letter-spacing: 1px;
+        }
+
+        .app-header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .app-content {
+            padding: 25px;
+            transform: translateY(-30px);
+        }
+
+        /* Chapter Select */
+        .chapter-select {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        .chapter-select label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        #chapter {
+            width: 100%;
+            padding: 15px 20px;
+            border-radius: 15px;
+            border: none;
+            background: white;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1rem;
+            appearance: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF6B6B'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        #chapter:focus {
+            outline: none;
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.2);
+        }
+
+        /* Flashcard */
+        .flashcard-container {
+            perspective: 1000px;
+            margin-bottom: 30px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 280px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+            margin: 0 auto;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-front {
+            background: white;
+            background-image: radial-gradient(circle at 10% 20%, rgba(255, 214, 102, 0.1) 0%, transparent 20%),
+                              radial-gradient(circle at 90% 80%, rgba(255, 107, 107, 0.1) 0%, transparent 20%);
+        }
+
+        .card-back {
+            background: linear-gradient(45deg, var(--secondary), var(--tertiary));
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        .card-word {
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+            word-break: break-word;
+            line-height: 1.3;
+            font-family: 'Fredoka One', cursive;
+            color: var(--dark);
+        }
+
+        .card-back .card-word {
+            color: white;
+        }
+
+        .card-translation {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            text-align: center;
+        }
+
+        .card-tag {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card-hint {
+            position: absolute;
+            bottom: 20px;
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 700;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
+        }
+
+        /* Progress */
+        .progress-container {
+            margin-bottom: 25px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 10px;
+            transition: width 0.4s;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .button {
+            flex: 1;
+            padding: 15px;
+            border-radius: 15px;
+            border: none;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .button-primary:hover {
+            background: #FF5252;
+        }
+
+        .button-secondary {
+            background: white;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .button-secondary:hover {
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        .button-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .button-success:hover {
+            background: #00C897;
+        }
+
+        .button-icon {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+
+        /* Status Message */
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: rgba(255, 214, 102, 0.2);
+            color: var(--dark);
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .app-header {
+                height: 160px;
+                padding: 20px;
+            }
+            
+            .app-header h1 {
+                font-size: 2rem;
+            }
+            
+            .app-content {
+                padding: 20px;
+                transform: translateY(-20px);
+            }
+            
+            .card-word {
+                font-size: 1.8rem;
+            }
+            
+            .card-translation {
+                font-size: 1.1rem;
+            }
+            
+            .button {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-header">
+            <h1>VocabBloom</h1>
+            <p>Automatische Lernkarten</p>
+        </div>
+        
+        <div class="app-content">
+            <div id="statusMessage" class="status-message">
+                Lade Vokabeln aus oxford.csv...
+            </div>
+            
+            <div class="chapter-select">
+                <label for="chapter">Wähle dein Kapitel</label>
+                <select id="chapter" onchange="loadChapter()">
+                    <option value="" disabled selected>Bitte auswählen...</option>
+                </select>
+            </div>
+            
+            <div class="flashcard-container">
+                <div id="flashcard" class="flashcard" onclick="toggleTranslation()">
+                    <div class="card-face card-front">
+                        <div id="word" class="card-word">Bereit zum Lernen!</div>
+                        <div class="card-tag">Englisch</div>
+                        <div class="card-hint">Klicken zum Drehen</div>
+                    </div>
+                    <div class="card-face card-back">
+                        <div id="translation" class="card-word">Vokabeln werden geladen</div>
+                        <div class="card-translation">Deutsch & Arabisch</div>
+                        <div class="card-tag">Übersetzung</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text">
+                    <span>Fortschritt:</span>
+                    <span id="progress-text">0%</span>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="backBtn" class="button button-secondary" onclick="previousCard()">
+                    <i class="fas fa-arrow-left button-icon"></i> Zurück
+                </button>
+                <button id="nextBtn" class="button button-primary" onclick="nextCard()">
+                    Weiter <i class="fas fa-arrow-right button-icon"></i>
+                </button>
+            </div>
+            
+            <button id="knowBtn" class="button button-success" onclick="markAsKnown()">
+                <i class="fas fa-check button-icon"></i> Gewusst!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let vocabData = [];
+        let chapters = {};
+        let chapterSize = 50;
+        let currentChapter = [];
+        let currentIndex = 0;
+        let showingTranslation = false;
+        
+        function loadCSVFile() {
+            fetch('oxford.csv')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('CSV-Datei nicht gefunden');
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    Papa.parse(data, {
+                        complete: function(results) {
+                            // Zeilen formatieren: [english, german, arabic]
+                            vocabData = results.data
+                                .filter(row => row.length >= 3 && row[0] && row[1] && row[2])
+                                .map(row => ({
+                                    english: row[0].trim(),
+                                    german: row[1].trim(),
+                                    arabic: row[2].trim()
+                                }));
+        
+                            if (vocabData.length > 0) {
+                                document.getElementById('statusMessage').textContent = 
+                                    `${vocabData.length} Vokabeln erfolgreich geladen!`;
+                                createChapters();
+                                buildChapterSelect();
+                                loadChapter(1);
+                            } else {
+                                document.getElementById('statusMessage').textContent = 
+                                    "Keine gültigen Vokabeln in der CSV-Datei gefunden.";
+                            }
+                        },
+                        error: function(error) {
+                            document.getElementById('statusMessage').textContent = 
+                                "Fehler beim Lesen der CSV-Datei: " + error.message;
+                        },
+                        delimiter: " ", // Wichtig: Trennzeichen für Wörter mit Leerzeichen
+                        skipEmptyLines: true
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('statusMessage').textContent = 
+                        "Fehler: " + error.message + " - Stellen Sie sicher, dass 'oxford.csv' im gleichen Ordner liegt";
+                    console.error('Fehler:', error);
+                });
+        }
+        
+        function createChapters() {
+            chapters = {};
+            const totalChapters = Math.ceil(vocabData.length / chapterSize);
+            
+            for (let i = 0; i < totalChapters; i++) {
+                const start = i * chapterSize;
+                const end = start + chapterSize;
+                chapters[i + 1] = vocabData.slice(start, end);
+            }
+        }
+        
+        function buildChapterSelect() {
+            const select = document.getElementById('chapter');
+            select.innerHTML = '<option value="" disabled selected>Bitte auswählen...</option>';
+            
+            for (const chapterNum in chapters) {
+                const option = document.createElement('option');
+                option.value = chapterNum;
+                const start = (chapterNum - 1) * chapterSize + 1;
+                const end = Math.min(chapterNum * chapterSize, vocabData.length);
+                option.text = `Kapitel ${chapterNum} (Wörter ${start}-${end})`;
+                select.appendChild(option);
+            }
+        }
+        
+        function loadChapter(chapterNum = 1) {
+            if (!chapters[chapterNum]) return;
+            
+            currentChapter = chapters[chapterNum];
+            currentIndex = 0;
+            showingTranslation = false;
+            document.getElementById('flashcard').classList.remove('flipped');
+            updateFlashcard();
+        }
+        
+        function updateFlashcard() {
+            const wordElement = document.getElementById('word');
+            const translationElement = document.getElementById('translation');
+            const flashcard = document.getElementById('flashcard');
+        
+            if (currentIndex < currentChapter.length) {
+                const currentWord = currentChapter[currentIndex];
+                wordElement.textContent = currentWord.english;
+                translationElement.innerHTML = '';
+                flashcard.classList.remove('flipped');
+                showingTranslation = false;
+            }
+            updateProgress();
+        }
+        
+        function toggleTranslation() {
+            const flashcard = document.getElementById('flashcard');
+            const translationElement = document.getElementById('translation');
+            const currentWord = currentChapter[currentIndex];
+        
+            if (!showingTranslation) {
+                translationElement.innerHTML = `
+                    <div><strong>${currentWord.german}</strong></div>
+                    <div style="margin-top: 5px;">${currentWord.arabic}</div>
+                `;
+                flashcard.classList.add('flipped');
+            } else {
+                translationElement.innerHTML = '';
+                flashcard.classList.remove('flipped');
+            }
+            
+            showingTranslation = !showingTranslation;
+        }
+        
+        function nextCard() {
+            if (currentIndex < currentChapter.length - 1) {
+                currentIndex++;
+                updateFlashcard();
+            } else {
+                alert("Ende des Kapitels erreicht!");
+            }
+        }
+        
+        function previousCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateFlashcard();
+            } else {
+                alert("Dies ist die erste Vokabel!");
+            }
+        }
+        
+        function markAsKnown() {
+            // Später: bekannte Wörter speichern
+            nextCard();
+        }
+        
+        function updateProgress() {
+            const progress = ((currentIndex + 1) / currentChapter.length) * 100;
+            document.getElementById('progress-fill').style.width = `${progress}%`;
+            document.getElementById('progress-text').textContent = `${Math.round(progress)}%`;
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCSVFile();
+        });
+        document.getElementById('chapter').addEventListener('change', function() {
+    const selected = this.value;
+    if (selected) {
+        loadChapter(parseInt(selected));
+    }
+});
+
+        </script>
+        
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+</body>
